@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import datetime
+from io import BytesIO  # This will help us handle the file in memory
 
 st.title("Upwork Job Scraper")
 st.write("This is a demo Streamlit app to scrape jobs and download Excel file.")
@@ -31,4 +32,16 @@ if st.button("Scrape Jobs"):
     df = scrape_and_save_jobs()
     if df is not None:
         st.dataframe(df)
-        st.download_button("Download Excel", df.to_excel(index=False, engine='openpyxl'), file_name="jobs.xlsx")
+
+        # Save dataframe to an in-memory Excel file
+        excel_buffer = BytesIO()
+        df.to_excel(excel_buffer, index=False, engine='openpyxl')
+        excel_buffer.seek(0)
+
+        # Provide a download button for the in-memory Excel file
+        st.download_button(
+            label="Download Excel",
+            data=excel_buffer,
+            file_name="jobs.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
