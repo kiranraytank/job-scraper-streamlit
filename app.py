@@ -6,23 +6,9 @@ from datetime import datetime
 # Title and description
 st.title("Upwork Job Scraper")
 st.write("This is a demo Streamlit app to scrape jobs and download Excel file.")
-st.sidebar.title("Filter Jobs")
-st.sidebar.write("Select language/technology stack:")
 
-# Available technologies (add or remove based on your preference)
-languages = ["Node.js", "PHP", "Laravel", "MySQL", "WordPress", "Shopify", "React", "Python", "Ruby"]
-
-# Sidebar filter for languages/technologies (multiple selection)
-selected_languages = st.sidebar.multiselect("Choose technologies:", languages, default=languages)
-
-# Available countries (Add more countries as needed)
-countries = ["United States", "Canada", "India", "United Kingdom", "Australia", "Germany", "France", "Brazil"]
-
-# Sidebar filter for countries (multiple selection)
-selected_countries = st.sidebar.multiselect("Choose countries:", countries, default=countries)
-
-# Scrape jobs from RemoteOK API and filter based on the selected language and country
-def scrape_and_save_jobs(languages, countries):
+# Scrape jobs from RemoteOK API
+def scrape_and_save_jobs():
     response = requests.get('https://remoteok.com/api')
     if response.status_code != 200:
         st.error("❌ Failed to fetch data")
@@ -41,37 +27,44 @@ def scrape_and_save_jobs(languages, countries):
             'Language': job.get('tags', []),
             'Country': job.get('location', '')  # Assume location contains country info
         }
-
-        # Filter jobs based on selected languages (allowing multiple)
-        if not any(lang in job_entry['Language'] for lang in languages):
-            continue
-
-        # Filter jobs based on selected countries (allowing multiple)
-        if not any(country in job_entry['Country'] for country in countries):
-            continue
-
         job_list.append(job_entry)
 
     return job_list
 
 # Button to scrape jobs and show results
 if st.button("Scrape Jobs"):
-    job_list = scrape_and_save_jobs(selected_languages, selected_countries)
-    
+    job_list = scrape_and_save_jobs()
+
     if job_list:
         # Convert job list to a DataFrame
         df = pd.DataFrame(job_list)
 
         # Show total job count in the sidebar
         st.sidebar.write(f"Total Jobs Found: {len(df)}")
-        
-        # Display the jobs dataframe
+
+        # Display the jobs dataframe in a table
         st.dataframe(df)
-        
+
+        # Allow users to filter/search through the displayed jobs dynamically
+        st.sidebar.title("Search Jobs")
+
+        # Search by job title or company
+        search_term = st.sidebar.text_input("Search by Position or Company", "")
+        if search_term:
+            df = df[df['Position'].str.contains(search_term, case=False) | df['Company'].str.contains(search_term, case=False)]
+
+        # Search by country (optional)
+        country_filter = st.sidebar.selectbox("Select Country", ["All"] + df['Country'].unique().tolist())
+        if country_filter != "All":
+            df = df[df['Country'] == country_filter]
+
+        # Display the filtered dataframe
+        st.dataframe(df)
+
         # Generate filename with the current timestamp
-        file_name = f"jobs_{'_'.join(selected_languages)}_{'_'.join(selected_countries)}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
-        
-        # Add download button
+        file_name = f"jobs_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
+
+        # Add download button for filtered jobs
         st.download_button("Download Excel", df.to_excel(index=False, engine='openpyxl'), file_name=file_name)
     else:
-        st.warning("⚠️ No jobs found for the selected languages and countries. Try selecting more options.")
+        st.warning("⚠️ No jobs found. Please try again later.")
