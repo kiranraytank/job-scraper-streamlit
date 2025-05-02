@@ -3,6 +3,24 @@ import pandas as pd
 import requests
 from datetime import datetime
 from io import BytesIO
+from PIL import Image
+import streamlit as st
+import base64
+from io import BytesIO
+
+def get_base64_image(img_path):
+    img = Image.open(img_path)
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    img_str = base64.b64encode(buffer.getvalue()).decode()
+    return img_str
+
+img_str = get_base64_image("logo.png")
+st.markdown(
+    f"<div style='text-align: center;'><img src='data:image/png;base64,{img_str}' width='150'></div>",
+    unsafe_allow_html=True
+)
+
 
 st.set_page_config(page_title="Job Scraper", layout="wide")
 st.title("🌐 Upwork Job Scraper")
