@@ -33,6 +33,9 @@ if st.button("Scrape Jobs"):
     if df is not None:
         st.dataframe(df)
 
+        # Create the file name with the current date and time
+        file_name = f"jobs_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
+
         # Save dataframe to an in-memory Excel file
         excel_buffer = BytesIO()
         df.to_excel(excel_buffer, index=False, engine='openpyxl')
@@ -42,6 +45,6 @@ if st.button("Scrape Jobs"):
         st.download_button(
             label="Download Excel",
             data=excel_buffer,
-            file_name="jobs.xlsx",
+            file_name=file_name,  # Include the timestamped filename
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
