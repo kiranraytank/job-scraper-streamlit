@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import datetime
+from io import BytesIO
 
 # Title and description
 st.title("Upwork Job Scraper")
@@ -64,7 +65,13 @@ if st.button("Scrape Jobs"):
         # Generate filename with the current timestamp
         file_name = f"jobs_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
 
+        # Save the dataframe to a BytesIO object
+        excel_buffer = BytesIO()
+        df.to_excel(excel_buffer, index=False, engine='openpyxl')
+        excel_buffer.seek(0)  # Go to the beginning of the buffer
+
         # Add download button for filtered jobs
-        st.download_button("Download Excel", df.to_excel(index=False, engine='openpyxl'), file_name=file_name)
+        st.download_button("Download Excel", excel_buffer, file_name=file_name)
     else:
         st.warning("⚠️ No jobs found. Please try again later.")
+
