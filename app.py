@@ -4,9 +4,10 @@ import requests
 from datetime import datetime
 from io import BytesIO
 from PIL import Image
-import streamlit as st
 import base64
-from io import BytesIO
+
+# Set the page config as the first command
+st.set_page_config(page_title="Job Scraper", layout="wide")
 
 def get_base64_image(img_path):
     img = Image.open(img_path)
@@ -15,14 +16,13 @@ def get_base64_image(img_path):
     img_str = base64.b64encode(buffer.getvalue()).decode()
     return img_str
 
+# Get the logo image in base64 and display it
 img_str = get_base64_image("raytik_blue.png")
 st.markdown(
     f"<div style='text-align: center;'><img src='data:image/png;base64,{img_str}' width='150'></div>",
     unsafe_allow_html=True
 )
 
-
-st.set_page_config(page_title="Job Scraper", layout="wide")
 st.title("🌐 Upwork Job Scraper")
 
 # Initialize session state to persist data
@@ -70,15 +70,11 @@ if df is not None and not df.empty:
     filtered_df = df.copy()
 
     if keyword:
-        filtered_df = filtered_df[
-            filtered_df['Position'].str.lower().str.contains(keyword) |
-            filtered_df['Company'].str.lower().str.contains(keyword)
-        ]
+        filtered_df = filtered_df[filtered_df['Position'].str.lower().str.contains(keyword) |
+                                  filtered_df['Company'].str.lower().str.contains(keyword)]
 
     if selected_langs:
-        filtered_df = filtered_df[
-            filtered_df['Language'].apply(lambda tags: any(lang in tags for lang in selected_langs))
-        ]
+        filtered_df = filtered_df[filtered_df['Language'].apply(lambda tags: any(lang in tags for lang in selected_langs))]
 
     if selected_locs:
         filtered_df = filtered_df[filtered_df['Location'].isin(selected_locs)]
