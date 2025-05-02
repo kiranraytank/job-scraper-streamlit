@@ -10,19 +10,19 @@ st.sidebar.title("Filter Jobs")
 st.sidebar.write("Select language/technology stack:")
 
 # Available technologies (add or remove based on your preference)
-languages = ["All", "Node.js", "PHP", "Laravel", "MySQL", "WordPress", "Shopify", "React", "Python", "Ruby"]
+languages = ["Node.js", "PHP", "Laravel", "MySQL", "WordPress", "Shopify", "React", "Python", "Ruby"]
 
-# Sidebar filter for languages/technologies
-selected_language = st.sidebar.selectbox("Choose a technology:", languages)
+# Sidebar filter for languages/technologies (multiple selection)
+selected_languages = st.sidebar.multiselect("Choose technologies:", languages, default=languages)
 
 # Available countries (Add more countries as needed)
-countries = ["All", "United States", "Canada", "India", "United Kingdom", "Australia", "Germany", "France", "Brazil"]
+countries = ["United States", "Canada", "India", "United Kingdom", "Australia", "Germany", "France", "Brazil"]
 
-# Sidebar filter for countries
-selected_country = st.sidebar.selectbox("Choose a country:", countries)
+# Sidebar filter for countries (multiple selection)
+selected_countries = st.sidebar.multiselect("Choose countries:", countries, default=countries)
 
 # Scrape jobs from RemoteOK API and filter based on the selected language and country
-def scrape_and_save_jobs(language, country):
+def scrape_and_save_jobs(languages, countries):
     response = requests.get('https://remoteok.com/api')
     if response.status_code != 200:
         st.error("❌ Failed to fetch data")
@@ -42,12 +42,12 @@ def scrape_and_save_jobs(language, country):
             'Country': job.get('location', '')  # Assume location contains country info
         }
 
-        # Filter jobs based on selected language
-        if language != "All" and language not in job_entry['Language']:
+        # Filter jobs based on selected languages (allowing multiple)
+        if not any(lang in job_entry['Language'] for lang in languages):
             continue
 
-        # Filter jobs based on selected country
-        if country != "All" and country not in job_entry['Country']:
+        # Filter jobs based on selected countries (allowing multiple)
+        if not any(country in job_entry['Country'] for country in countries):
             continue
 
         job_list.append(job_entry)
@@ -56,7 +56,7 @@ def scrape_and_save_jobs(language, country):
 
 # Button to scrape jobs and show results
 if st.button("Scrape Jobs"):
-    job_list = scrape_and_save_jobs(selected_language, selected_country)
+    job_list = scrape_and_save_jobs(selected_languages, selected_countries)
     
     if job_list:
         # Convert job list to a DataFrame
@@ -69,9 +69,9 @@ if st.button("Scrape Jobs"):
         st.dataframe(df)
         
         # Generate filename with the current timestamp
-        file_name = f"jobs_{selected_language}_{selected_country}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
+        file_name = f"jobs_{'_'.join(selected_languages)}_{'_'.join(selected_countries)}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
         
         # Add download button
         st.download_button("Download Excel", df.to_excel(index=False, engine='openpyxl'), file_name=file_name)
     else:
-        st.warning("⚠️ No jobs found for the selected language and country.")
+        st.warning("⚠️ No jobs found for the selected languages and countries. Try selecting more options.")
