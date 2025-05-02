@@ -15,7 +15,7 @@ def get_base64_image(img_path):
     img_str = base64.b64encode(buffer.getvalue()).decode()
     return img_str
 
-img_str = get_base64_image("logo.png")
+img_str = get_base64_image("raytik_blue.png")
 st.markdown(
     f"<div style='text-align: center;'><img src='data:image/png;base64,{img_str}' width='150'></div>",
     unsafe_allow_html=True
