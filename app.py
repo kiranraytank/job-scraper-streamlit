@@ -4,20 +4,22 @@ import requests
 from datetime import datetime
 from io import BytesIO
 
-st.set_page_config(layout="wide")  # Optional: for better layout
+st.set_page_config(page_title="Job Scraper", layout="wide")
+st.title("🌐 Upwork Job Scraper")
 
-st.title("Upwork Job Scraper")
-st.write("Scrape RemoteOK jobs and filter by keyword, language, or country.")
+# Initialize session state to persist data
+if "df" not in st.session_state:
+    st.session_state.df = None
 
-# Define scraping function
-@st.cache_data
 def scrape_jobs():
     response = requests.get('https://remoteok.com/api')
     if response.status_code != 200:
-        return []
-    jobs_data = response.json()[1:]
+        return pd.DataFrame()
+    
+    jobs = response.json()[1:]  # Skip first item (metadata)
     job_list = []
-    for job in jobs_data:
+
+    for job in jobs:
         job_list.append({
             'Date': job.get('date'),
             'Company': job.get('company'),
@@ -26,58 +28,56 @@ def scrape_jobs():
             'Language': ', '.join(job.get('tags', [])),
             'URL': job.get('url')
         })
-    return job_list
 
-# Button to scrape
-if st.button("Scrape Jobs"):
-    job_data = scrape_jobs()
+    return pd.DataFrame(job_list)
 
-    if not job_data:
-        st.error("No jobs found.")
-    else:
-        df = pd.DataFrame(job_data)
+# Scrape Button
+if st.button("🔄 Scrape Jobs"):
+    st.session_state.df = scrape_jobs()
 
-        st.sidebar.subheader("🔍 Filter Options")
+df = st.session_state.df
 
-        # Search filter
-        keyword = st.sidebar.text_input("Search by keyword (Position or Company)").strip().lower()
+if df is not None and not df.empty:
+    st.sidebar.header("🔍 Filter Options")
 
-        # Language filter
-        all_languages = sorted({tag for tags in df['Language'].str.split(', ') for tag in tags})
-        selected_languages = st.sidebar.multiselect("Select Language(s)", all_languages)
+    # Sidebar filters
+    keyword = st.sidebar.text_input("Search (Position or Company)").lower()
+    languages = sorted({lang for row in df['Language'].dropna() for lang in row.split(', ')})
+    selected_langs = st.sidebar.multiselect("Language(s)", languages)
 
-        # Country filter
-        all_countries = sorted(df['Location'].dropna().unique())
-        selected_countries = st.sidebar.multiselect("Select Country(s)", all_countries)
+    locations = sorted(df['Location'].dropna().unique())
+    selected_locs = st.sidebar.multiselect("Location(s)", locations)
 
-        # Apply filters
-        filtered_df = df.copy()
-        if keyword:
-            filtered_df = filtered_df[
-                filtered_df['Position'].str.lower().str.contains(keyword) |
-                filtered_df['Company'].str.lower().str.contains(keyword)
-            ]
-        if selected_languages:
-            filtered_df = filtered_df[
-                filtered_df['Language'].apply(lambda x: any(lang in x for lang in selected_languages))
-            ]
-        if selected_countries:
-            filtered_df = filtered_df[filtered_df['Location'].isin(selected_countries)]
+    # Filter logic
+    filtered_df = df.copy()
 
-        # Show job count
-        st.sidebar.markdown(f"### 📊 Total Jobs: {len(filtered_df)}")
+    if keyword:
+        filtered_df = filtered_df[
+            filtered_df['Position'].str.lower().str.contains(keyword) |
+            filtered_df['Company'].str.lower().str.contains(keyword)
+        ]
 
-        # Show table
-        st.subheader(f"Showing {len(filtered_df)} job(s)")
-        if len(filtered_df) > 0:
-            st.dataframe(filtered_df)
+    if selected_langs:
+        filtered_df = filtered_df[
+            filtered_df['Language'].apply(lambda tags: any(lang in tags for lang in selected_langs))
+        ]
 
-            # Download button
-            output = BytesIO()
-            file_name = f"jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-            filtered_df.to_excel(output, index=False, engine='openpyxl')
-            output.seek(0)
-            st.download_button("Download Excel", output, file_name=file_name)
-        else:
-            st.warning("No jobs match the selected filters.")
+    if selected_locs:
+        filtered_df = filtered_df[filtered_df['Location'].isin(selected_locs)]
+
+    # Display total jobs and filtered table
+    st.sidebar.markdown(f"### 📊 Total Jobs: {len(filtered_df)}")
+    st.subheader(f"📋 Filtered Jobs: {len(filtered_df)}")
+    st.dataframe(filtered_df, use_container_width=True)
+
+    # Download filtered data
+    if not filtered_df.empty:
+        output = BytesIO()
+        file_name = f"jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        filtered_df.to_excel(output, index=False, engine='openpyxl')
+        output.seek(0)
+
+        st.download_button("📥 Download Excel", output, file_name=file_name)
+else:
+    st.info("Click 'Scrape Jobs' to load job listings.")
 
