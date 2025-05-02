@@ -32,34 +32,29 @@ def scrape_and_save_jobs():
 
     return job_list
 
-# Button to scrape jobs and show results
+# Create a button for scraping jobs
 if st.button("Scrape Jobs"):
     job_list = scrape_and_save_jobs()
 
     if job_list:
-        # Convert job list to a DataFrame
+        # Convert job list to DataFrame
         df = pd.DataFrame(job_list)
 
-        # Show total job count in the sidebar
+        # Display total job count in the sidebar
         st.sidebar.write(f"Total Jobs Found: {len(df)}")
 
-        # Display the jobs dataframe in a table
-        st.dataframe(df)
-
-        # Allow users to filter/search through the displayed jobs dynamically
-        st.sidebar.title("Search Jobs")
-
-        # Search by job title or company
+        # Search bar in sidebar for filtering jobs by position or company
         search_term = st.sidebar.text_input("Search by Position or Company", "")
+        
         if search_term:
             df = df[df['Position'].str.contains(search_term, case=False) | df['Company'].str.contains(search_term, case=False)]
 
-        # Search by country (optional)
+        # Filter jobs by country
         country_filter = st.sidebar.selectbox("Select Country", ["All"] + df['Country'].unique().tolist())
         if country_filter != "All":
             df = df[df['Country'] == country_filter]
 
-        # Display the filtered dataframe
+        # Show the filtered dataframe
         st.dataframe(df)
 
         # Generate filename with the current timestamp
