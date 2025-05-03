@@ -67,6 +67,7 @@ if df is not None and not df.empty:
     selected_locs = st.sidebar.multiselect("Location(s)", locations)
 
     # Filter logic
+    total_job_df = len(df.copy())
     filtered_df = df.copy()
 
     if keyword:
@@ -80,7 +81,7 @@ if df is not None and not df.empty:
         filtered_df = filtered_df[filtered_df['Location'].isin(selected_locs)]
 
     # Display total jobs and filtered table
-    st.sidebar.markdown(f"### 📊 Total Jobs: {len(filtered_df)}")
+    st.sidebar.markdown(f"### 📊 Total Jobs: {total_job_df}")
     st.subheader(f"📋 Filtered Jobs: {len(filtered_df)}")
     st.dataframe(filtered_df, use_container_width=True)
 
