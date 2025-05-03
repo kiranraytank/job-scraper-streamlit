@@ -27,9 +27,19 @@ def scrape_and_save_jobs():
     df = pd.DataFrame(job_list)
     return df
 
+import io
+
 if st.button("Scrape Jobs"):
     df = scrape_and_save_jobs()
     if df is not None:
         st.dataframe(df)
-        st.download_button("Download Excel", df.to_excel(index=False, engine='openpyxl'), file_name="jobs.xlsx")
+
+        # Save to a BytesIO buffer
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+        output.seek(0)
+
+        # Display download button with binary Excel data
+        st.download_button("Download Excel", output, file_name="jobs.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
