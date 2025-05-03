@@ -51,11 +51,14 @@ def scrape_and_save_jobs():
         st.error("❌ Failed to fetch data")
         return None
 
+<<<<<<< HEAD
     # 🔍 Show full raw JSON from API
     st.subheader("Full JSON Response")
     st.json(response.json())  # 👈 This will display the entire JSON response in a pretty format
 
 
+=======
+>>>>>>> e6256d1 (Commit #K4 set in dev)
     jobs_data = response.json()[1:]
     job_list = []
     for job in jobs_data:
