@@ -1,12 +1,13 @@
-
 import streamlit as st
 import pandas as pd
 import requests
 import io
 
-st.set_page_config(page_title="RemoteOK Job Scraper", layout="wide")
-st.title("💼 RemoteOK Job Scraper")
+st.set_page_config(page_title="RemoteOk Job Scraper", layout="wide")
+st.title("💼 RemoteOk Job Scraper")
+st.write("Scrape job listings and apply filters to download as Excel.")
 
+# Scrape jobs function
 @st.cache_data
 def scrape_jobs():
     response = requests.get("https://remoteok.com/api")
@@ -29,9 +30,9 @@ def scrape_jobs():
 # --- Scrape Button ---
 if st.button("🔄 Scrape Jobs"):
     df = scrape_jobs()
-    if df is not None and not df.empty:
+    if df is not None:
         st.session_state.df = df
-        st.success("✅ Job data scraped successfully.")
+        st.success("✅ Jobs scraped successfully!")
     else:
         st.error("❌ Failed to scrape job data.")
 
@@ -42,43 +43,48 @@ if "df" in st.session_state:
     st.sidebar.header("🔍 Filter Jobs")
     st.sidebar.markdown(f"**Total Jobs:** {len(df)}")
 
-    search_text = st.sidebar.text_input("Search (by position/company)")
-    
-    all_languages = sorted({lang for tags in df["Tags"] for lang in tags.split(", ")})
-    selected_lang = st.sidebar.selectbox("Language", ["All"] + all_languages)
+    # Search
+    search = st.sidebar.text_input("Search (position or company)")
 
+    # Language filter
+    all_tags = sorted(set(tag.strip() for tags in df["Tags"] for tag in tags.split(",")))
+    language = st.sidebar.selectbox("Language", ["All"] + all_tags)
+
+    # Location filter
     all_locations = sorted(df["Location"].dropna().unique())
-    selected_location = st.sidebar.selectbox("Location", ["All"] + all_locations)
+    location = st.sidebar.selectbox("Location", ["All"] + all_locations)
 
+    # Apply Filter
     apply_filter = st.sidebar.button("✅ Apply Filter")
 
-    # --- Apply Filters ---
     filtered_df = df.copy()
     if apply_filter:
-        if search_text:
+        if search:
             filtered_df = filtered_df[
-                filtered_df["Position"].str.contains(search_text, case=False, na=False) |
-                filtered_df["Company"].str.contains(search_text, case=False, na=False)
+                filtered_df["Position"].str.contains(search, case=False, na=False) |
+                filtered_df["Company"].str.contains(search, case=False, na=False)
             ]
-        if selected_lang != "All":
-            filtered_df = filtered_df[filtered_df["Tags"].str.contains(selected_lang, case=False, na=False)]
-        if selected_location != "All":
-            filtered_df = filtered_df[filtered_df["Location"] == selected_location]
+        if language != "All":
+            filtered_df = filtered_df[filtered_df["Tags"].str.contains(language, case=False, na=False)]
+        if location != "All":
+            filtered_df = filtered_df[filtered_df["Location"] == location]
 else:
-    st.sidebar.info("Please scrape jobs first.")
+    st.sidebar.info("⬆️ First click 'Scrape Jobs' to enable filters.")
 
-# --- Show Table ---
+# --- Display Table and Download ---
 if "df" in st.session_state:
-    st.markdown(f"### Showing {len(filtered_df)} job(s) out of {len(df)}")
+    st.markdown(f"### Showing {len(filtered_df)} of {len(df)} jobs")
     st.dataframe(filtered_df, use_container_width=True)
 
-    # --- Excel Download ---
+    # Download as Excel
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         filtered_df.to_excel(writer, index=False)
     buffer.seek(0)
-    st.download_button("📥 Download Filtered Jobs", data=buffer,
-                       file_name="filtered_jobs.xlsx",
-                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
+    st.download_button(
+        label="📥 Download Filtered Jobs",
+        data=buffer,
+        file_name="filtered_jobs.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
